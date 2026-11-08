@@ -1,0 +1,74 @@
+{{- $existing := lookup "v1" "Secret" .Release.Namespace (printf "%s-config" .Release.Name) }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Release.Name }}-config
+type: Opaque
+stringData:
+  SSP_USERS: {{ .Values.users | quote }}
+  {{- if .Values.jwtSecret }}
+  SSP_JWT_SECRET: {{ .Values.jwtSecret | quote }}
+  {{- else if $existing }}
+  SSP_JWT_SECRET: {{ index $existing.data "SSP_JWT_SECRET" | b64dec | quote }}
+  {{- else }}
+  SSP_JWT_SECRET: {{ randAlphaNum 48 | quote }}
+  {{- end }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+      annotations:
+        checksum/config: {{ .Values.users | sha256sum }}
+    spec:
+      serviceAccountName: {{ .Release.Name }}
+      containers:
+        - name: portal
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - secretRef:
+                name: {{ .Release.Name }}-config
+          env:
+            - name: SSP_MOCK_MODE
+              value: "false"
+            - name: HOME
+              value: /tmp
+          readinessProbe:
+            httpGet: { path: /api/health, port: 8000 }
+          livenessProbe:
+            httpGet: { path: /api/health, port: 8000 }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    app: {{ .Release.Name }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: 8000

@@ -1,0 +1,23 @@
+image:
+  repository: k8-ssp
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+
+# Portal login users: "user:password:role[:ns1|ns2]" comma-separated. CHANGE THESE.
+users: "viewer:change-me:viewer,dev:change-me:developer:default,admin:change-me:admin"
+# Must be >= 32 bytes. Leave empty to generate a random one on install.
+jwtSecret: ""
+
+# Cluster permissions granted to the portal ServiceAccount.
+rbac:
+  allowActions: true   # restart / scale deployments
+  listSecrets: true    # "List secrets" action (names and key names only; values are never returned, but RBAC still grants read)
+  helmReleases: true   # read Helm release Secrets (needed for helm list; exposes release data cluster-wide)
+
+resources:
+  requests: { cpu: 50m, memory: 128Mi }
+  limits: { cpu: 500m, memory: 256Mi }

@@ -1,0 +1,26 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+
+# Node / frontend build
+node_modules/
+dist/
+
+# Local config and secrets - never commit
+.env
+.env.*
+*kubeconfig*
+*.pem
+*.key
+
+# Logs and OS/editor files
+*.log
+.DS_Store
+.idea/
+.vscode/
