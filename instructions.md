@@ -1537,7 +1537,7 @@ Open <http://localhost:5173>, log in as `dev` / `dev`, pick a namespace, and cli
 
 ```bash
 #!/usr/bin/env bash
-# Starts backend (:8000) and frontend (:5173). Usage: ./run.sh [mock|real]   (default: real)
+# Starts backend (:8000, localhost only) and frontend (:5173). Usage: [HOST=0.0.0.0] ./run.sh [mock|real]   (default: real)
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -1561,8 +1561,8 @@ for _ in $(seq 1 30); do
 done
 curl -sf localhost:8000/api/health >/dev/null || { echo "Backend failed to start"; exit 1; }
 
-echo "Backend ready (mode=$MODE). Open http://localhost:5173  (login: admin/admin)"
-cd frontend && npm run dev
+echo "Backend ready (mode=$MODE). Open http://${HOST:-localhost}:5173  (login: admin/admin)"
+cd frontend && npm run dev -- --host "${HOST:-localhost}"
 ```
 
 Run it from the project root:
@@ -1571,6 +1571,14 @@ Run it from the project root:
 bash run.sh          # real mode: uses your current kubectl context (e.g. kind)
 bash run.sh mock     # fake demo data, no cluster needed
 ```
+
+**Access from another machine / public IP** (e.g. an EC2 or Lightsail VM): by default the UI listens on `localhost` only. Start it with
+
+```bash
+HOST=0.0.0.0 bash run.sh          # add `mock` for demo data
+```
+
+then open `http://<public-ip>:5173` and allow inbound TCP **5173** in your firewall (Lightsail: Networking tab; AWS: security group). Only the UI port is exposed; the backend stays on `127.0.0.1:8000` and the UI proxies `/api` and the live-log WebSocket to it. This is plain HTTP, so restrict the firewall rule to your own IP (or put HTTPS in front) and change the default passwords before exposing it.
 
 Then open <http://localhost:5173> and log in as `admin` / `admin`. If login shows a proxy error (`ECONNREFUSED`), the backend is not running — check the terminal output for its error.
 

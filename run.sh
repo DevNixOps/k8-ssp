@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Starts backend (:8000) and frontend (:5173). Usage: ./run.sh [mock|real]   (default: real)
+# Starts backend (:8000, localhost only) and frontend (:5173). Usage: [HOST=0.0.0.0] ./run.sh [mock|real]   (default: real)
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -23,5 +23,5 @@ for _ in $(seq 1 30); do
 done
 curl -sf localhost:8000/api/health >/dev/null || { echo "Backend failed to start"; exit 1; }
 
-echo "Backend ready (mode=$MODE). Open http://localhost:5173  (login: admin/admin)"
-cd frontend && npm run dev
+echo "Backend ready (mode=$MODE). Open http://${HOST:-localhost}:5173  (login: admin/admin)"
+cd frontend && npm run dev -- --host "${HOST:-localhost}"

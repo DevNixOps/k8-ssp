@@ -16,6 +16,11 @@ Requires Python 3.9+ and Node.js 20+ (tested on Python 3.9 and 3.13).
 `run.sh` creates the backend venv and runs `npm install` on the first run, starts the backend on :8000, waits until `/api/health` responds, then starts the frontend on :5173. Open http://localhost:5173 and sign in as `admin` / `admin`.
 
 - **Stop:** press `Ctrl+C` in the terminal running `run.sh`; it stops both the frontend and the backend.
+- **Access from another machine / public IP** (e.g. an EC2 or Lightsail VM): by default the UI listens on `localhost` only. Use
+  ```bash
+  HOST=0.0.0.0 ./run.sh        # add `mock` for demo data
+  ```
+  then open `http://<public-ip>:5173` and allow inbound TCP **5173** in the firewall (Lightsail: Networking tab; AWS: security group). Only the UI port is exposed — the backend stays on `127.0.0.1:8000`, and the UI proxies `/api` and the live-log WebSocket to it. This serves plain HTTP, so restrict the firewall rule to your own IP (or put HTTPS in front) and change the default passwords before exposing it.
 - **If it was closed without Ctrl+C** (and a port is still busy): `lsof -nP -iTCP:8000 -iTCP:5173 -sTCP:LISTEN`, then `kill <PID>` for each listed process.
 - **Restart:** stop, then run `./run.sh` again. A new JWT secret is generated each time, so you will be signed out (set `SSP_JWT_SECRET` to keep sessions across restarts).
 - If you get `ECONNREFUSED` on login, the backend did not start; check the terminal output for its error.
