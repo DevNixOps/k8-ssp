@@ -4,7 +4,21 @@ Developer portal to view Deployments, Pods, Services, Helm releases and Events, 
 
 **Stack:** FastAPI + `kubernetes-asyncio` (backend) · React + TypeScript + Vite (frontend) · JWT auth · WebSocket live logs · Helm CLI for releases · Docker + Helm chart for deployment.
 
-## Run locally (no cluster needed — mock mode)
+## Quick start / stop (`run.sh`)
+
+```bash
+./run.sh          # real mode: uses your current kubectl context (e.g. kind)
+./run.sh mock     # fake demo data, no cluster needed
+```
+
+`run.sh` creates the backend venv and runs `npm install` on the first run, starts the backend on :8000, waits until `/api/health` responds, then starts the frontend on :5173. Open http://localhost:5173 and sign in as `admin` / `admin`.
+
+- **Stop:** press `Ctrl+C` in the terminal running `run.sh`; it stops both the frontend and the backend.
+- **If it was closed without Ctrl+C** (and a port is still busy): `lsof -nP -iTCP:8000 -iTCP:5173 -sTCP:LISTEN`, then `kill <PID>` for each listed process.
+- **Restart:** stop, then run `./run.sh` again. A new JWT secret is generated each time, so you will be signed out (set `SSP_JWT_SECRET` to keep sessions across restarts).
+- If you get `ECONNREFUSED` on login, the backend did not start; check the terminal output for its error.
+
+## Run locally step by step (no cluster needed — mock mode)
 
 ```bash
 # backend (mock cluster by default)
