@@ -4,7 +4,7 @@ By the end you will have a working web portal where developers log in and see **
 
 | Layer | Technology | Why |
 |---|---|---|
-| Backend API | Python 3.11+ / FastAPI | Quick to write, auto-generated API docs at `/docs`, built-in WebSocket |
+| Backend API | Python 3.9+ / FastAPI | Quick to write, auto-generated API docs at `/docs`, built-in WebSocket |
 | Kubernetes access | `kubernetes-asyncio` + Helm CLI | Official client; Helm has no good Python SDK |
 | Auth | JWT + roles (viewer / developer / admin) | Simple and demonstrable |
 | Frontend | React + TypeScript + Vite | Great AI code-generation support |
@@ -14,7 +14,7 @@ By the end you will have a working web portal where developers log in and see **
 
 ## 0. Prerequisites
 
-- Python 3.11+ and Node.js 20+ (`python3 --version`, `node --version`)
+- Python 3.9+ (tested on 3.9 and 3.13) and Node.js 20+ (`python3 --version`, `node --version`). On Python 3.9 avoid `X | None` type hints — the code uses `typing.Optional` so it runs on 3.9.
 - Optional (for real clusters / deployment): `kubectl`, `helm`, `docker`
 
 ## 1. Generate all project files from this document
@@ -62,6 +62,8 @@ python-multipart>=0.0.9
 #### `backend/app/config.py`
 
 ```python
+from typing import Optional
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -69,7 +71,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="SSP_")
 
     mock_mode: bool = True  # set SSP_MOCK_MODE=false to talk to a real cluster
-    kubeconfig: str | None = None  # None -> in-cluster, then default kubeconfig
+    kubeconfig: Optional[str] = None  # None -> in-cluster, then default kubeconfig
     jwt_secret: str = "change-me-in-production-use-32+-bytes"
     token_ttl_minutes: int = 60
     # "user:password:role[:ns1|ns2]" comma-separated. Roles: viewer, developer, admin
@@ -89,6 +91,7 @@ settings = Settings()
 import hmac
 import time
 from dataclasses import dataclass
+from typing import Optional
 
 import jwt
 from fastapi import Depends, HTTPException, status
@@ -120,7 +123,7 @@ def _load_users() -> dict[str, tuple[str, str, list[str]]]:
     return users
 
 
-def authenticate(username: str, password: str) -> User | None:
+def authenticate(username: str, password: str) -> Optional[User]:
     rec = _load_users().get(username)
     if rec and hmac.compare_digest(rec[0].encode(), password.encode()):
         return User(username, rec[1], rec[2])
@@ -170,10 +173,12 @@ def check_namespace(user: User, ns: str) -> None:
 #### `backend/app/providers/__init__.py`
 
 ```python
+from typing import Optional
+
 from ..config import settings
 from .base import Provider
 
-_provider: Provider | None = None
+_provider: Optional[Provider] = None
 
 
 def get_provider() -> Provider:
@@ -193,7 +198,7 @@ def get_provider() -> Provider:
 #### `backend/app/providers/base.py`
 
 ```python
-from typing import AsyncIterator, Protocol
+from typing import AsyncIterator, Optional, Protocol
 
 
 class NotFound(Exception):
@@ -208,10 +213,10 @@ class Provider(Protocol):
     async def events(self, ns: str) -> list[dict]: ...
     async def configmaps(self, ns: str) -> list[dict]: ...
     async def secrets(self, ns: str) -> list[dict]: ...  # metadata only, never values
-    async def helm_releases(self, ns: str | None) -> list[dict]: ...
+    async def helm_releases(self, ns: Optional[str]) -> list[dict]: ...
     async def helm_release(self, ns: str, name: str) -> dict: ...
-    async def logs(self, ns: str, pod: str, container: str | None, tail: int, previous: bool) -> str: ...
-    def stream_logs(self, ns: str, pod: str, container: str | None, tail: int) -> AsyncIterator[str]: ...
+    async def logs(self, ns: str, pod: str, container: Optional[str], tail: int, previous: bool) -> str: ...
+    def stream_logs(self, ns: str, pod: str, container: Optional[str], tail: int) -> AsyncIterator[str]: ...
     async def restart(self, ns: str, deployment: str) -> None: ...
     async def scale(self, ns: str, deployment: str, replicas: int) -> None: ...
 ```
@@ -374,6 +379,7 @@ import asyncio
 import functools
 import json
 from datetime import datetime, timezone
+from typing import Optional
 
 from kubernetes_asyncio import client, config
 from kubernetes_asyncio.client.exceptions import ApiException
@@ -382,7 +388,7 @@ from ..config import settings
 from .base import NotFound
 
 
-def _iso(ts) -> str | None:
+def _iso(ts) -> Optional[str]:
     return ts.isoformat() if ts else None
 
 
@@ -635,6 +641,7 @@ import os
 from pathlib import Path
 from collections import defaultdict
 from contextlib import asynccontextmanager
+from typing import Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -745,7 +752,7 @@ async def helm_one(release: str, ns: str = Depends(_ns_user)):
 @app.get("/api/namespaces/{namespace}/pods/{pod}/logs")
 async def pod_logs(
     pod: str,
-    container: str | None = None,
+    container: Optional[str] = None,
     tail: int = Query(200, ge=1),
     previous: bool = False,
     ns: str = Depends(_ns_user),
@@ -773,7 +780,7 @@ async def scale(name: str, body: ScaleBody, ns: str = Depends(_ns_user), user: U
 
 
 @app.websocket("/api/ws/namespaces/{namespace}/pods/{pod}/logs")
-async def live_logs(ws: WebSocket, namespace: str, pod: str, token: str, container: str | None = None, tail: int = 50):
+async def live_logs(ws: WebSocket, namespace: str, pod: str, token: str, container: Optional[str] = None, tail: int = 50):
     try:
         user = decode_token(token)
     except HTTPException:

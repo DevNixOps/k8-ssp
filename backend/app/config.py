@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -5,7 +7,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="SSP_")
 
     mock_mode: bool = True  # set SSP_MOCK_MODE=false to talk to a real cluster
-    kubeconfig: str | None = None  # None -> in-cluster, then default kubeconfig
+    kubeconfig: Optional[str] = None  # None -> in-cluster, then default kubeconfig
     jwt_secret: str = "change-me-in-production-use-32+-bytes"
     token_ttl_minutes: int = 60
     # "user:password:role[:ns1|ns2]" comma-separated. Roles: viewer, developer, admin

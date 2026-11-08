@@ -1,7 +1,9 @@
+from typing import Optional
+
 from ..config import settings
 from .base import Provider
 
-_provider: Provider | None = None
+_provider: Optional[Provider] = None
 
 
 def get_provider() -> Provider:

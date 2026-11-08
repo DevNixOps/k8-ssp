@@ -6,6 +6,8 @@ Developer portal to view Deployments, Pods, Services, Helm releases and Events, 
 
 ## Quick start / stop (`run.sh`)
 
+Requires Python 3.9+ and Node.js 20+ (tested on Python 3.9 and 3.13).
+
 ```bash
 ./run.sh          # real mode: uses your current kubectl context (e.g. kind)
 ./run.sh mock     # fake demo data, no cluster needed

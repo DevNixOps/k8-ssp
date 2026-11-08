@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 from collections import defaultdict
 from contextlib import asynccontextmanager
+from typing import Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -113,7 +114,7 @@ async def helm_one(release: str, ns: str = Depends(_ns_user)):
 @app.get("/api/namespaces/{namespace}/pods/{pod}/logs")
 async def pod_logs(
     pod: str,
-    container: str | None = None,
+    container: Optional[str] = None,
     tail: int = Query(200, ge=1),
     previous: bool = False,
     ns: str = Depends(_ns_user),
@@ -141,7 +142,7 @@ async def scale(name: str, body: ScaleBody, ns: str = Depends(_ns_user), user: U
 
 
 @app.websocket("/api/ws/namespaces/{namespace}/pods/{pod}/logs")
-async def live_logs(ws: WebSocket, namespace: str, pod: str, token: str, container: str | None = None, tail: int = 50):
+async def live_logs(ws: WebSocket, namespace: str, pod: str, token: str, container: Optional[str] = None, tail: int = 50):
     try:
         user = decode_token(token)
     except HTTPException:

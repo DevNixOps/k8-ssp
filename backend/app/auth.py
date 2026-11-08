@@ -1,6 +1,7 @@
 import hmac
 import time
 from dataclasses import dataclass
+from typing import Optional
 
 import jwt
 from fastapi import Depends, HTTPException, status
@@ -32,7 +33,7 @@ def _load_users() -> dict[str, tuple[str, str, list[str]]]:
     return users
 
 
-def authenticate(username: str, password: str) -> User | None:
+def authenticate(username: str, password: str) -> Optional[User]:
     rec = _load_users().get(username)
     if rec and hmac.compare_digest(rec[0].encode(), password.encode()):
         return User(username, rec[1], rec[2])

@@ -2,6 +2,7 @@ import asyncio
 import functools
 import json
 from datetime import datetime, timezone
+from typing import Optional
 
 from kubernetes_asyncio import client, config
 from kubernetes_asyncio.client.exceptions import ApiException
@@ -10,7 +11,7 @@ from ..config import settings
 from .base import NotFound
 
 
-def _iso(ts) -> str | None:
+def _iso(ts) -> Optional[str]:
     return ts.isoformat() if ts else None
 
 
